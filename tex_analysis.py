@@ -122,17 +122,19 @@ def plot_n_nh3_mom0_panel(n_nh3_file, mom0file, tex_file, etex_file, eTex_lim,
     #cb.ax.tick_params(labelsize=10)
 
 
-def plot_tex_etex_tk_panel(tex_file,etex_file,eTex_lim,Tk_file,eTk_file,region,plot_param,ax):
+def plot_tex_etex_tk_panel(tex_file,etex_file,eTex_lim,Tk_file,eTk_file,etk_lim, 
+                           region,plot_param,ax):
     tex_data = fits.getdata(tex_file)
     # Mask where uncertainties on Tex are high
     nh3eTex = fits.getdata(etex_file)
     tex_data[(nh3eTex > eTex_lim)] = np.nan
-    # Mask where no good fits (data == 0)
-    tex_data[(tex_data == 0)] = np.nan
     # Look at Tk, eTk:
     tk_data  = fits.getdata(Tk_file)
     etk_data = fits.getdata(eTk_file)
     etk_data[np.isnan(tex_data)] = np.nan
+    # Mask where no good fits (Tk == 0)
+    tex_data[(tk_data == 0)] = np.nan
+    tex_data[(etk_data > etk_lim)] = np.nan
 
     gridsize = plot_param['temp_grid_size']
     finite_index = np.where(np.isfinite(tex_data))
@@ -228,7 +230,7 @@ for i in range(len(region_list)):
     nh3TkFits   = 'propertyMaps/{0}_Tkin_{1}_flag.fits'.format(region,file_extension)
     nh3eTkFits = 'propertyMaps/{0}_eTkin_{1}_flag.fits'.format(region,file_extension)
     ax = axes[i]
-    plot_tex_etex_tk_panel(nh3TexFits,nh3eTexFits,eTex_lim,nh3TkFits,nh3eTkFits,
+    plot_tex_etex_tk_panel(nh3TexFits,nh3eTexFits,eTex_lim,nh3TkFits,nh3eTkFits,eTk_lim,
                            region,plot_param,ax)
 
 plt.tight_layout()

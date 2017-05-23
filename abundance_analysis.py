@@ -186,6 +186,7 @@ def plot_flux_compare(nh3ImFile,h2ImFile,region,plot_param):
     fig.savefig('figures/{0}_Herschel_vs_NH3_flux.pdf'.format(region))    
 
 def plot_co_compare(xImFile,coImFile,region,plot_param):
+    # More important to look at (1) NH3 vs. CO, or (2) X(NH3) vs. X(CO)
     gridsize=plot_param['nh2_grid_size']
     xnh3_data = fits.getdata(xImFile)
     co_data   = fits.getdata(coImFile)
@@ -201,6 +202,26 @@ def plot_co_compare(xImFile,coImFile,region,plot_param):
     cb = plt.colorbar()
     cb.set_label('log10(N)')
     fig.savefig('figures/{0}_XNH3_vs_CO.pdf'.format(region))    
+
+def plot_xco_compare(nh3ImFile,coImFile,region,plot_param):
+    # More important to look at (1) NH3 vs. CO, or (2) X(NH3) vs. X(CO)
+    gridsize=plot_param['flux_grid_size']*0.2
+    nh3_data = fits.getdata(nh3ImFile)
+    co_data   = fits.getdata(coImFile)
+    finite_index = np.where(np.isfinite(nh3_data))
+    fig = plt.figure()
+    ax = plt.gca()
+    plt.hexbin(np.log10(nh3_data[finite_index]),np.log10(co_data[finite_index]),
+               gridsize=gridsize,bins='log',cmap=plt.cm.pink_r,
+               extent=[-0.6,np.log10(plot_param['nh3_mom0_max']),-0.8,1.])
+    ax.set_xlabel('log NH$_3$ mom 0 (K km s$^{-1}$)')
+    ax.set_ylabel('log CO mom 0 (K km s$^{-1}$)')
+    ax.set_xlim(-0.6,np.log10(plot_param['nh3_mom0_max']))
+    ax.set_ylim(-0.8,1.)
+    #ax.set_ylim(0,max_her)
+    cb = plt.colorbar()
+    cb.set_label('log10(N)')
+    fig.savefig('figures/{0}_NH3_vs_CO_mom0.pdf'.format(region))    
 
 def plot_tex_compare(xImFile,nh3_tex_file,nh3_etex_file,eTex_lim,region,plot_param):
     gridsize=plot_param['temp_grid_size']
@@ -223,72 +244,19 @@ def plot_tex_compare(xImFile,nh3_tex_file,nh3_etex_file,eTex_lim,region,plot_par
     fig.savefig('figures/{0}_XNH3_vs_Tex.pdf'.format(region))    
 
 def plot_abundance_compare_panel(nh3_col_file,h2_col_file,
-                                 nh3_tex_file, tex_lim, nh3_etex_file,eTex_lim,
+                                 nh3_tex_file, nh3_etex_file,eTex_lim,
+                                 tk_file, etk_file,etk_lim,
                                  region,plot_param,ax):
     h2_col_data = fits.getdata(h2_col_file)
     nh3_col_data = fits.getdata(nh3_col_file)
-    # Mask where no good fits (data == 0)
-    nh3_col_data[(nh3_col_data == 0)] = np.nan
+    tk_data = fits.getdata(tk_file)
+    etk_data = fits.getdata(etk_file)
+    # Mask where no good fits (tk_data == 0)
+    nh3_col_data[(tk_data == 0)] = np.nan
+    nh3_col_data[(etk_data > etk_lim)] = np.nan
     # Mask where uncertainties on Tex are high
-    nh3Tex  = fits.getdata(nh3_tex_file)
     nh3eTex = fits.getdata(nh3_etex_file)
-    nh3_col_data[nh3Tex < tex_lim] = np.nan
     nh3_col_data[(nh3eTex > eTex_lim)] = np.nan
-    # Mask where no good fits (data == 0)
-    nh3_col_data[(nh3_col_data == 0)] = np.nan
-    # N(NH3) data in logspace, N(H2) data not
-    xnh3_data = nh3_col_data - np.log10(h2_col_data)
-
-    gridsize = plot_param['nh2_grid_size']
-    finite_index = np.where(np.isfinite(nh3_col_data))
-    # Get mean, median X(NH3) value:
-    medX = np.nanmedian(xnh3_data[finite_index])
-    meanX = np.nanmean(xnh3_data[finite_index])
-    # NH3 abundance already in log
-    # Use hexbin, scatter plots not useful here
-    im = ax.hexbin(np.log10(h2_col_data[finite_index]),
-                   xnh3_data[finite_index],
-                   gridsize=gridsize,cmap=plt.cm.pink_r,bins='log',
-                   extent=[plot_param['h2_col_lim'][0],plot_param['h2_col_lim'][1],
-                           plot_param['xnh3_lim'][0],plot_param['xnh3_lim'][1]])
-    #ax.plot([21,24],[medX,medX],linewidth=2,color='gray',alpha=0.6,
-    #        label='$X$(NH$_3$) = {:3.1f}'.format(medX))
-    ax.set_ylabel('log $X$(para-NH$_3$)',fontsize=12)
-    ax.set_xlabel('log $N$(H$_2$) (cm$^{-2}$)',fontsize=12)
-    ax.set_xlim(21.1,23.2)
-    ax.set_ylim(-9,-7)
-    ax.set_yticks([-9,-8,-7])
-    ax.tick_params(axis='both',which='major',labelsize=11)
-    ax.text(0.93,0.72,'{0}'.format(region),fontsize=10,horizontalalignment='right',transform=ax.transAxes)
-    minor_locator = AutoMinorLocator(2)
-    ax.xaxis.set_minor_locator(minor_locator)
-    ax.yaxis.set_minor_locator(minor_locator)
-    cb = fig.colorbar(im,ax=ax,ticks=[0,0.5,1])
-    cb.set_label('log10(N)',fontsize=11)
-    cb.ax.tick_params(labelsize=10)
-    ax.legend(loc=1,frameon=False,fontsize=10)
-
-def plot_abundance_compare_panel_22(nh3_col_file,h2_col_file,
-                                    nh3_tex_file, tex_lim, nh3_etex_file,eTex_lim,
-                                    nh3_22_peak, nh3_22_rms,
-                                    region,plot_param,ax):
-    h2_col_data = fits.getdata(h2_col_file)
-    nh3_col_data = fits.getdata(nh3_col_file)
-    nh3_22_data = fits.getdata(nh3_22_peak)
-    nh3_22_rms_data = fits.getdata(nh3_22_rms)
-    snr_22 = nh3_22_data/nh3_22_rms_data
-    # Mask where snr_22 < 5
-    nh3_col_data[snr_22 < plot_param['snr_lim']] = np.nan
-    #nh3_col_data[snr_22 < 2.5] = np.nan
-    # Mask where no good fits (data == 0)
-    nh3_col_data[(nh3_col_data == 0)] = np.nan
-    # Mask where uncertainties on Tex are high
-    nh3Tex  = fits.getdata(nh3_tex_file)
-    nh3eTex = fits.getdata(nh3_etex_file)
-    #nh3_col_data[nh3Tex < tex_lim] = np.nan
-    nh3_col_data[(nh3eTex > eTex_lim)] = np.nan
-    # Mask where no good fits (data == 0)
-    nh3_col_data[(nh3_col_data == 0)] = np.nan
     # N(NH3) data in logspace, N(H2) data not
     xnh3_data = nh3_col_data - np.log10(h2_col_data)
 
@@ -361,6 +329,7 @@ for region in region_list:
     if region in ['NGC1333']:
         coFile = '../otherData/jcmt/{0}/match_NH3/ngc1333_c18o32_jcmt_reprojected_mom0.fits'.format(region)
         plot_co_compare(xnh3File,coFile,region,plot_param)
+        plot_xco_compare(nh3ImFits,coFile,region,plot_param)
 
 # Set up for panel plot
 fig,axes = plt.subplots(2,2,figsize=(7.5,5))
@@ -378,13 +347,14 @@ for i in range(len(region_list)):
     nh3ColFits = 'propertyMaps/{0}_N_NH3_{1}_flag.fits'.format(region,file_extension)
     nh3TexFits = 'propertyMaps/{0}_Tex_{1}_flag.fits'.format(region,file_extension)
     nh3eTexFits = 'propertyMaps/{0}_eTex_{1}_flag.fits'.format(region,file_extension)
+    nh3TkFits = 'propertyMaps/{0}_Tkin_{1}_flag.fits'.format(region,file_extension)
+    nh3eTkFits = 'propertyMaps/{0}_eTkin_{1}_flag.fits'.format(region,file_extension)
     # And plot
     ax = axes[i]
-    #plot_abundance_compare_panel(nh3ColFits,herschelNH2File,nh3TexFits,plot_param['tex_lim'],
-    #                             nh3eTexFits,eTex_lim,region,plot_param,ax)
-    plot_abundance_compare_panel_22(nh3ColFits,herschelNH2File,nh3TexFits,0,
-                                    nh3eTexFits,eTex_lim,nh322Fits,nh322RmsFits,region,plot_param,ax)
+    plot_abundance_compare_panel(nh3ColFits,herschelNH2File,nh3TexFits,nh3eTexFits,eTex_lim,
+                                 nh3TkFits,nh3eTkFits,eTk_lim,
+                                 region,plot_param,ax)
 
 plt.tight_layout()
-fig.savefig('figures/DR1_XNH3_sn22_lim.pdf'.format(Tex_lim))
+fig.savefig('figures/DR1_XNH3_Tk_lim.pdf'.format(Tex_lim))
 plt.close('all')
