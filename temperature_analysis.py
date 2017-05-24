@@ -179,8 +179,7 @@ def plot_temp_h2_panel(nh3_tk_file,h2_td_file,h2_col_file,
     cb.set_label('log10(N)',fontsize=11)
     cb.ax.tick_params(labelsize=10)
 
-def plot_temp_vs_td_panel(nh3_tk_file,h2_td_file,
-                          eTk_file,eTk_lim,eTex_file,eTex_lim,
+def plot_temp_vs_td_panel(nh3_tk_file,h2_td_file,eTk_file,eTk_lim,eTex_file,eTex_lim,
                           region,plot_param,ax):
     eTk_data  = fits.getdata(eTk_file)
     eTex_data = fits.getdata(eTex_file)
@@ -195,19 +194,109 @@ def plot_temp_vs_td_panel(nh3_tk_file,h2_td_file,
     temp_ratio = h2_temp_data/nh3_temp_data
     im = ax.hexbin(h2_temp_data[finite_index],temp_ratio[finite_index],
                    gridsize=plot_param['temp_grid_size']*0.8,bins='log',cmap=plt.cm.pink_r,
-                   #extent=[plot_param['h2_col_lim'][0],plot_param['h2_col_lim'][1],
                    extent=[8,60,0.5,3])
-                   #plot_param['her_temp_lim'][1]/plot_param['nh3_temp_lim'][1]])
-    #plt.scatter(np.log10(h2_col_data[finite_index]),temp_ratio[finite_index])
     ax.text(0.07,0.74,'{0}'.format(region),fontsize=10,horizontalalignment='left',transform=ax.transAxes)
     ax.plot([0,100],[1,1],linewidth=2,color='gray',alpha=0.6,label='$T_d = T_K$')
     ax.legend(loc=2,frameon=False,fontsize=10)
     ax.set_ylabel(r'$T_\mathrm{d} \ / \ T_\mathrm{k}$',fontsize=12)
     ax.set_xlabel(r'$T_\mathrm{d}$ (K)',fontsize=12)
     ax.tick_params(axis='both',which='major',labelsize=11)
-    #ax.set_xticks([21.5,22,22.5,23])
     ax.set_xlim(8,60)
     cb = fig.colorbar(im,ax=ax,ticks=[0,0.5,1,1.5,2])
+    cb.set_label('log10(N)',fontsize=11)
+    cb.ax.tick_params(labelsize=10)
+
+def plot_tk_vs_td_panel(nh3_tk_file,h2_td_file,eTk_file,eTk_lim,eTex_file,eTex_lim,
+                        region,plot_param,ax):
+    eTk_data  = fits.getdata(eTk_file)
+    eTex_data = fits.getdata(eTex_file)
+    nh3_temp_data = fits.getdata(nh3_tk_file)
+    h2_temp_data  = fits.getdata(h2_td_file)
+    # Mask out pixels with large errors in Tk
+    nh3_temp_data[eTk_data > eTk_lim] = np.NaN
+    nh3_temp_data[eTex_data > eTex_lim] = np.nan
+    nh3_temp_data[nh3_temp_data == 0] = np.NaN
+    maxTkin = plot_param['nh3_temp_lim'][1]
+    finite_index = np.where(np.logical_and(np.isfinite(nh3_temp_data),nh3_temp_data < maxTkin))
+    temp_ratio = h2_temp_data/nh3_temp_data
+    im = ax.hexbin(nh3_temp_data[finite_index], h2_temp_data[finite_index],
+                   gridsize=plot_param['temp_grid_size'],bins='log',cmap=plt.cm.pink_r,
+                   extent=[5,40,5,60])
+    ax.text(0.07,0.85,'{0}'.format(region),fontsize=10,horizontalalignment='left',transform=ax.transAxes)
+    ax.plot([0,100],[0,100],linewidth=2,color='gray',alpha=0.6,label='$T_d = T_K$')
+    ax.legend(loc=4,frameon=False,fontsize=10)
+    ax.set_xlabel(r'$T_\mathrm{k}$ (K)',fontsize=12)
+    ax.set_ylabel(r'$T_\mathrm{d}$ (K)',fontsize=12)
+    ax.tick_params(axis='both',which='major',labelsize=11)
+    ax.set_ylim(5,60)
+    ax.set_xlim(5,40)
+    cb = fig.colorbar(im,ax=ax,ticks=[0,0.5,1,1.5,2])
+    cb.set_label('log10(N)',fontsize=11)
+    cb.ax.tick_params(labelsize=10)
+
+def plot_td_h2_panel(nh3_tk_file,h2_td_file,h2_col_file,
+                     eTk_file,eTk_lim,eTex_file,eTex_lim,
+                     region,plot_param,ax):
+    eTk_data  = fits.getdata(eTk_file)
+    eTex_data = fits.getdata(eTex_file)
+    nh3_temp_data = fits.getdata(nh3_tk_file)
+    h2_temp_data  = fits.getdata(h2_td_file)
+    h2_col_data   = fits.getdata(h2_col_file)
+    # Mask out pixels with large errors in Tk
+    nh3_temp_data[eTk_data > eTk_lim] = np.NaN
+    nh3_temp_data[eTex_data > eTex_lim] = np.nan
+    nh3_temp_data[nh3_temp_data == 0] = np.NaN
+    maxTkin = plot_param['nh3_temp_lim'][1]
+    finite_index = np.where(np.logical_and(np.isfinite(nh3_temp_data),nh3_temp_data < maxTkin))
+    td_mean = np.nanmedian(h2_temp_data[finite_index])
+    tk_mean = np.nanmedian(nh3_temp_data[finite_index])
+    im = ax.hexbin(np.log10(h2_col_data[finite_index]),h2_temp_data[finite_index],
+                   gridsize=plot_param['temp_grid_size'],bins='log',cmap=plt.cm.pink_r,
+                   extent=[21.4,23.2,5,60])
+    #plt.scatter(np.log10(h2_col_data[finite_index]),temp_ratio[finite_index])
+    ax.text(0.93,0.72,'{0}'.format(region),fontsize=10,horizontalalignment='right',transform=ax.transAxes)
+    ax.plot([20,24],[td_mean,td_mean],color='red',alpha=0.3,linewidth=1.5,label=r'$\langle T_d \rangle$')
+    ax.plot([20,24],[tk_mean,tk_mean],color='blue',alpha=0.3,linewidth=1.5,label=r'$\langle T_\mathrm{K} \rangle$')
+    #ax.legend(loc=2,frameon=False,fontsize=10)
+    ax.set_ylabel(r'$T_\mathrm{d}$ (K)',fontsize=12)
+    ax.set_xlabel(r'$N(\mathrm{H}_2) \ \mathrm{cm}^{-2}$',fontsize=12)
+    ax.tick_params(axis='both',which='major',labelsize=11)
+    ax.set_xticks([21.5,22,22.5,23])
+    ax.set_xlim(21.4,23.2)
+    cb = fig.colorbar(im,ax=ax,ticks=[0,0.5,1])
+    cb.set_label('log10(N)',fontsize=11)
+    cb.ax.tick_params(labelsize=10)
+
+def plot_tk_h2_panel(nh3_tk_file,h2_td_file,h2_col_file,
+                     eTk_file,eTk_lim,eTex_file,eTex_lim,
+                     region,plot_param,ax):
+    eTk_data  = fits.getdata(eTk_file)
+    eTex_data = fits.getdata(eTex_file)
+    nh3_temp_data = fits.getdata(nh3_tk_file)
+    h2_temp_data  = fits.getdata(h2_td_file)
+    h2_col_data   = fits.getdata(h2_col_file)
+    # Mask out pixels with large errors in Tk
+    nh3_temp_data[eTk_data > eTk_lim] = np.NaN
+    nh3_temp_data[eTex_data > eTex_lim] = np.nan
+    nh3_temp_data[nh3_temp_data == 0] = np.NaN
+    maxTkin = plot_param['nh3_temp_lim'][1]
+    finite_index = np.where(np.logical_and(np.isfinite(nh3_temp_data),nh3_temp_data < maxTkin))
+    td_mean = np.nanmedian(h2_temp_data[finite_index])
+    tk_mean = np.nanmedian(nh3_temp_data[finite_index])
+    im = ax.hexbin(np.log10(h2_col_data[finite_index]),nh3_temp_data[finite_index],
+                   gridsize=plot_param['temp_grid_size'],bins='log',cmap=plt.cm.pink_r,
+                   extent=[21.4,23.2,5,60])
+    #plt.scatter(np.log10(h2_col_data[finite_index]),temp_ratio[finite_index])
+    ax.plot([20,24],[td_mean,td_mean],color='red',alpha=0.3,linewidth=1.5,label=r'$\langle T_d \rangle$')
+    ax.plot([20,24],[tk_mean,tk_mean],color='blue',alpha=0.3,linewidth=1.5,label=r'$\langle T_\mathrm{K} \rangle$')
+    ax.text(0.93,0.72,'{0}'.format(region),fontsize=10,horizontalalignment='right',transform=ax.transAxes)
+    ax.legend(loc=2,frameon=False,fontsize=10)
+    ax.set_ylabel(r'$T_\mathrm{K}$ (K)',fontsize=12)
+    ax.set_xlabel(r'$N(\mathrm{H}_2) \ \mathrm{cm}^{-2}$',fontsize=12)
+    ax.tick_params(axis='both',which='major',labelsize=11)
+    ax.set_xticks([21.5,22,22.5,23])
+    ax.set_xlim(21.4,23.2)
+    cb = fig.colorbar(im,ax=ax,ticks=[0,0.5,1])
     cb.set_label('log10(N)',fontsize=11)
     cb.ax.tick_params(labelsize=10)
 
@@ -305,4 +394,61 @@ for i in range(len(region_list)):
 
 plt.tight_layout()
 fig.savefig('figures/DR1_temp_ratio_vs_td.pdf')
+plt.close('all')
+
+# Set up for panel plot
+fig,axes = plt.subplots(2,2,figsize=(7.5,5))
+axes = axes.ravel()
+
+for i in range(len(region_list)):
+    region = region_list[i]
+    plot_param = plottingDictionary[region]
+    if region in ['OrionA']:
+        herschelTdFile = '{0}/{1}_Td_regrid_masked.fits'.format(herschel_td_dir,region)
+        herschelNH2File = '{0}/{1}_NH2_regrid_masked.fits'.format(herschel_nh2_dir,region)
+    else:
+        herschelTdFile = '{0}/{1}_Td_regrid.fits'.format(herschel_td_dir,region)
+        herschelNH2File = '{0}/{1}_NH2_regrid.fits'.format(herschel_nh2_dir,region)
+    protList = 'protostars/{0}_protostar_list.txt'.format(region)
+    nh3TkFits  = 'propertyMaps/{0}_Tkin_{1}_flag.fits'.format(region,file_extension)
+    nh3eTkFits = 'propertyMaps/{0}_eTkin_{1}_flag.fits'.format(region,file_extension)
+    nh3eTexFits = 'propertyMaps/{0}_eTex_{1}_flag.fits'.format(region,file_extension)
+    # And plot
+    ax = axes[i]
+    plot_tk_vs_td_panel(nh3TkFits,herschelTdFile,nh3eTkFits,eTk_lim,nh3eTexFits,eTex_lim,
+                        region,plot_param,ax)
+
+plt.tight_layout()
+fig.savefig('figures/DR1_tk_vs_td.pdf')
+plt.close('all')
+
+# Set up for panel plot
+fig,axes = plt.subplots(4,2,figsize=(7.5,10))
+axes = axes.ravel()
+
+for i in range(len(region_list)):
+    region = region_list[i]
+    plot_param = plottingDictionary[region]
+    if region in ['OrionA']:
+        herschelTdFile = '{0}/{1}_Td_regrid_masked.fits'.format(herschel_td_dir,region)
+        herschelNH2File = '{0}/{1}_NH2_regrid_masked.fits'.format(herschel_nh2_dir,region)
+    else:
+        herschelTdFile = '{0}/{1}_Td_regrid.fits'.format(herschel_td_dir,region)
+        herschelNH2File = '{0}/{1}_NH2_regrid.fits'.format(herschel_nh2_dir,region)
+    protList = 'protostars/{0}_protostar_list.txt'.format(region)
+    nh3TkFits  = 'propertyMaps/{0}_Tkin_{1}_flag.fits'.format(region,file_extension)
+    nh3eTkFits = 'propertyMaps/{0}_eTkin_{1}_flag.fits'.format(region,file_extension)
+    nh3eTexFits = 'propertyMaps/{0}_eTex_{1}_flag.fits'.format(region,file_extension)
+    # And plot
+    ax = axes[2*i]
+    plot_tk_h2_panel(nh3TkFits,herschelTdFile,herschelNH2File,
+                     nh3eTkFits,eTk_lim,nh3eTexFits,eTex_lim,
+                     region,plot_param,ax)
+    ax = axes[2*i+1]
+    plot_td_h2_panel(nh3TkFits,herschelTdFile,herschelNH2File,
+                     nh3eTkFits,eTk_lim,nh3eTexFits,eTex_lim,
+                     region,plot_param,ax)   
+
+plt.tight_layout()
+fig.savefig('figures/DR1_temps_vs_h2.pdf')
 plt.close('all')
